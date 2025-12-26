@@ -21,6 +21,30 @@ const INFERENCE_URL = process.env.INFERENCE_URL;
 const MODEL_ID = 'williampepple1/ibani-translator';
 
 /**
+ * Welcome Route
+ */
+app.get('/', (req: Request, res: Response) => {
+    res.json({
+        message: "Welcome to the Ibani Translator API 🚀",
+        version: "1.0.0",
+        description: "A specialized translation service connecting English and the Ibani language.",
+        endpoints: {
+            translate: {
+                path: "/api/translate",
+                method: "POST",
+                body: "{ \"text\": \"string\" }"
+            },
+            health: {
+                path: "/health",
+                method: "GET"
+            }
+        },
+        attribution: "Powered by Hugging Face",
+        status: "Online"
+    });
+});
+
+/**
  * Health Check Route
  */
 app.get('/health', (req: Request, res: Response) => {
