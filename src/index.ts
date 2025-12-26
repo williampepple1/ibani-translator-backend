@@ -15,7 +15,9 @@ app.use(cors({
         'http://localhost:3000',
         'http://localhost:5173',
         'http://localhost:5000',
-        'https://ibani-ai.vercel.app'
+        'https://ibani-ai.vercel.app',
+        'https://ibani.online',
+        'https://www.ibani.online'
     ],
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization']
