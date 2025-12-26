@@ -13,8 +13,11 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Configuration
-const HUGGING_FACE_ACCESS_TOKEN = process.env.HUGGING_FACE_ACCESS_TOKEN;
+/**
+ * Configuration
+ * INFERENCE_URL: The URL of your Hugging Face Space (e.g., https://username-space.hf.space/translate)
+ */
+const INFERENCE_URL = process.env.INFERENCE_URL;
 const MODEL_ID = 'williampepple1/ibani-translator';
 
 /**
@@ -24,6 +27,7 @@ app.get('/health', (req: Request, res: Response) => {
     res.json({
         status: 'UP',
         model: MODEL_ID,
+        using_custom_inference: !!INFERENCE_URL,
         timestamp: new Date().toISOString()
     });
 });
@@ -44,38 +48,24 @@ app.post('/api/translate', async (req: Request, res: Response) => {
             });
         }
 
-        console.log(`Translating: "${text}"`);
-
-        // Hugging Face Inference API call
-        const response = await axios.post(
-            `https://router.huggingface.co/hf-inference/models/${MODEL_ID}`,
-            {
-                inputs: text,
-                parameters: {
-                    wait_for_model: true // If model is loading, wait for it
-                }
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${HUGGING_FACE_ACCESS_TOKEN}`
-                }
-            }
-        );
-
-        // Process response
-        // Usually returns: [{ translation_text: "..." }]
-        const data = response.data;
-        
-        let translatedText = '';
-        if (Array.isArray(data) && data.length > 0) {
-            translatedText = data[0].translation_text;
-        } else if (data.translation_text) {
-            translatedText = data.translation_text;
-        } else {
-            // Fallback for different response formats
-            translatedText = JSON.stringify(data);
+        if (!INFERENCE_URL) {
+            return res.status(500).json({
+                error: 'Configuration Error',
+                message: 'INFERENCE_URL is not set in environment variables.'
+            });
         }
+
+        console.log(`Translating: "${text}" using endpoint: ${INFERENCE_URL}`);
+
+        // Call our custom inference server (FastAPI on HF Spaces)
+        const response = await axios.post(INFERENCE_URL, {
+            text: text
+        }, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 30000 // 30 second timeout for cold starts
+        });
+
+        const translatedText = response.data.translated_text;
 
         res.json({
             original_text: text,
@@ -88,10 +78,9 @@ app.post('/api/translate', async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Translation Error:', error.response?.data || error.message);
         
-        const statusCode = error.response?.status || 500;
-        const errorMessage = error.response?.data?.error || error.message || 'Internal Server Error';
+        const errorMessage = error.response?.data?.detail || error.message || 'Internal Server Error';
 
-        res.status(statusCode).json({
+        res.status(500).json({
             error: 'Translation Failed',
             message: errorMessage,
             success: false
@@ -104,7 +93,7 @@ app.listen(PORT, () => {
     console.log(`=========================================`);
     console.log(`🚀 Ibani Translator Backend is running!`);
     console.log(`📡 Port: ${PORT}`);
-    console.log(`🤖 Model: ${MODEL_ID}`);
     console.log(`🔗 Health Check: http://localhost:${PORT}/health`);
+    console.log(`🛠️ Inference URL: ${INFERENCE_URL || 'NOT SET'}`);
     console.log(`=========================================`);
 });
