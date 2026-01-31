@@ -33,50 +33,6 @@ const INFERENCE_URL = process.env.INFERENCE_URL;
 const MODEL_ID = 'williampepple1/ibani-translator';
 
 /**
- * Fix Ibani Spacing
- * Removes unwanted spaces around special Ibani characters (á, Á, ḅ, Ḅ)
- * that may be introduced by the tokenizer.
- */
-function fixIbaniSpacing(text: string): string {
-    if (!text) return text;
-
-    // All Ibani letters (including special characters) that can appear in words
-    const ibaniLetters = (
-        'a-zA-Z' +              // Basic ASCII letters
-        'ạẹịọụ' +               // Vowels with dot below (lowercase)
-        'ẠẸỊỌỤ' +               // Vowels with dot below (uppercase)
-        'áéíóú' +               // Vowels with acute (lowercase)
-        'ÁÉÍÓÚ' +               // Vowels with acute (uppercase)
-        'àèìòù' +               // Vowels with grave (lowercase)
-        'ÀÈÌÒÙ' +               // Vowels with grave (uppercase)
-        'ḅ' +                   // B with dot below (lowercase)
-        'Ḅ' +                   // B with dot below (uppercase)
-        'ńṅ' +                  // N with diacritics (lowercase)
-        'ŃṄ'                    // N with diacritics (uppercase)
-    );
-
-    // Characters that cause spacing issues
-    const specialChars = ['á', 'Á', 'ḅ', 'Ḅ'];
-
-    let result = text;
-
-    for (const char of specialChars) {
-        // Escape the character for use in regex
-        const escapedChar = char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        
-        // Remove space before the character (when preceded by any Ibani letter)
-        const beforeRegex = new RegExp(`([${ibaniLetters}])\\s+${escapedChar}`, 'gu');
-        result = result.replace(beforeRegex, `$1${char}`);
-        
-        // Remove space after the character (when followed by any Ibani letter)
-        const afterRegex = new RegExp(`${escapedChar}\\s+([${ibaniLetters}])`, 'gu');
-        result = result.replace(afterRegex, `${char}$1`);
-    }
-
-    return result;
-}
-
-/**
  * Welcome Route
  */
 app.get('/', (req: Request, res: Response) => {
@@ -145,7 +101,7 @@ app.post('/api/translate', async (req: Request, res: Response) => {
             timeout: 30000 // 30 second timeout for cold starts
         });
 
-        const translatedText = fixIbaniSpacing(response.data.translated_text);
+        const translatedText = response.data.translated_text;
 
         res.json({
             original_text: text,
