@@ -1,0 +1,18 @@
+name: Daily Keep-Alive Ping
+
+on:
+  schedule:
+    # Runs at 11:00 UTC (12:00 PM WAT) daily
+    - cron: '0 11 * * *'
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions tab
+
+jobs:
+  ping:
+    name: Ping Inference Server
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Ping Hugging Face Space
+        run: |
+          echo "Pinging Hugging Face Space to keep model loaded..."
+          curl -s -f -o /dev/null -w "%{http_code}" https://williampepple1-ibani-model.hf.space/ || echo "Ping failed or returned error code"
